@@ -1,123 +1,26 @@
-import { BookOpen, ChevronRight, Sparkles } from "lucide-react";
-import SkillCard from "../components/SkillCard";
+import { LibraryBig, Plus, Search } from "lucide-react";
 
-export default function Overview({ skills, requests, onRequest, setPage }) {
+export default function Overview({ onAddSkill, setPage }) {
   return (
-    <>
-      <section className="hero-grid">
-        <div className="hero-card">
-          <div className="hero-orbit orbit-one" />
-          <div className="hero-orbit orbit-two" />
-          <div className="hero-content">
-            <span className="hero-kicker">YOUR LEARNING LOOP</span>
-            <h2>
-              Give a little.
-              <br />
-              <span>Learn a lot.</span>
-            </h2>
-            <p>
-              Share your skills, meet curious people, and build something better
-              together.
-            </p>
-            <button
-              className="dark-button"
-              onClick={() => setPage("Discover skills")}
-            >
-              Explore the community <ChevronRight size={16} />
-            </button>
-          </div>
-          <div className="hero-stat">
-            <strong>64</strong>
-            <span>
-              active exchanges
-              <br />
-              this month
-            </span>
-          </div>
-        </div>
-        <div className="match-card">
-          <div className="section-top">
-            <div>
-              <span className="eyebrow">A good match</span>
-              <h3>Made for your goals</h3>
-            </div>
-            <Sparkles size={20} className="sparkle" />
-          </div>
-          <div className="match-person">
-            <div className="avatar avatar-mint">MC</div>
-            <div>
-              <strong>Maya Chen</strong>
-              <span>
-                Can teach <b>UI / UX Design</b>
-              </span>
-              <span>
-                Wants to learn <b>Public Speaking</b>
-              </span>
-            </div>
-            <button
-              className="circle-button"
-              onClick={() => onRequest("UI / UX Design", "Exchange")}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-          <button
-            className="text-button"
-            onClick={() => setPage("My connections")}
-          >
-            See all matches <ChevronRight size={15} />
+    <section className="dashboard-actions-panel mx-auto grid max-w-5xl gap-10">
+      <div className="dashboard-actions-copy min-w-0">
+        <span className="eyebrow">Your learning space</span>
+        <h2>What would you like to do?</h2>
+        <p>Share what you know or find your next skill to learn.</p>
+      </div>
+      <div className="dashboard-actions grid w-full gap-3">
+        <div className="dashboard-skill-actions grid w-full grid-cols-2 gap-3">
+          <button className="primary-button flex w-full items-center justify-center" onClick={onAddSkill}>
+            <Plus size={17} /> Add skills
+          </button>
+          <button className="outline-button flex w-full items-center justify-center" onClick={() => setPage("Discover skills")}>
+            <Search size={17} /> Find skills
           </button>
         </div>
-      </section>
-      <section className="content-grid">
-        <div className="panel">
-          <div className="section-top">
-            <div>
-              <span className="eyebrow">Browse the library</span>
-              <h3>Popular skills</h3>
-            </div>
-            <button
-              className="text-button"
-              onClick={() => setPage("Discover skills")}
-            >
-              View all <ChevronRight size={15} />
-            </button>
-          </div>
-          <div className="skill-grid">
-            {skills.slice(0, 4).map((skill) => (
-              <SkillCard key={skill.id} skill={skill} onRequest={onRequest} />
-            ))}
-          </div>
-        </div>
-        <div className="panel activity-panel">
-          <div className="section-top">
-            <div>
-              <span className="eyebrow">Keep the loop going</span>
-              <h3>Recent requests</h3>
-            </div>
-            <button
-              className="circle-button pale"
-              onClick={() => setPage("Requests")}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-          {requests.slice(0, 3).map((request) => (
-            <div className="activity-row" key={request.id}>
-              <div className="activity-icon">
-                <BookOpen size={15} />
-              </div>
-              <div>
-                <strong>{request.skill}</strong>
-                <span>
-                  {request.type} request from {request.from}
-                </span>
-              </div>
-              <small>{request.date}</small>
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
+        <button className="outline-button dashboard-library-action flex w-full items-center justify-center" onClick={() => setPage("Discover skills")}>
+          <LibraryBig size={17} /> Browse library
+        </button>
+      </div>
+    </section>
   );
 }

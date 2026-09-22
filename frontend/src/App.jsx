@@ -9,14 +9,15 @@ import Connections from "./pages/Connections";
 import Requests from "./pages/Requests";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import SkillManagement from "./pages/SkillManagement";
 import Login from "./pages/Login";
 import { fallbackSkills, fallbackUsers } from "./data/fallbackData";
 
-function PageHeading({ activePage, onAddSkill }) {
+function PageHeading({ activePage, onAddSkill, showAction = true }) {
   return (
     <section className="page-heading">
       <div>
-        <p className="eyebrow">Tuesday, September 21, 2026</p>
+
         <h1>
           {activePage === "Overview" ? (
             <>
@@ -32,9 +33,11 @@ function PageHeading({ activePage, onAddSkill }) {
             : "Find your next meaningful learning exchange."}
         </p>
       </div>
-      <button className="primary-button" onClick={onAddSkill}>
-        <Plus size={17} /> Add a skill
-      </button>
+      {showAction && (
+        <button className="primary-button" onClick={onAddSkill}>
+          <Plus size={17} /> Add a skill
+        </button>
+      )}
     </section>
   );
 }
@@ -126,12 +129,16 @@ export default function App() {
         requestCount={requests.length}
         currentUser={{ name: "Guest learner", department: "Preview mode", avatar: "GS" }}
         publicMode
+        isAdmin={false}
         onNavigate={() => notify("Log in to explore this workspace.")}
         onNotify={notify}
         onLogin={() => setShowModal("login")}
       >
-        <PageHeading activePage="Overview" onAddSkill={() => setShowModal("login")} />
-        <Overview skills={skills} requests={requests} onRequest={sendRequest} setPage={() => notify("Log in to explore the full community.")} />
+        <PageHeading activePage="Overview" showAction={false} />
+        <Overview
+          onAddSkill={() => setShowModal("login")}
+          setPage={() => notify("Log in to explore the full community.")}
+        />
         {notice && <div className="toast"><Check size={16} />{notice}</div>}
         {showModal === "login" && <Login onLogin={setAuthUser} onClose={() => setShowModal(false)} />}
       </AppShell>
@@ -144,6 +151,7 @@ export default function App() {
         skills={skills}
         requests={requests}
         onRequest={sendRequest}
+        onAddSkill={() => setShowModal(true)}
         setPage={setActivePage}
       />
     ),
@@ -152,6 +160,13 @@ export default function App() {
         skills={filteredSkills}
         query={query}
         setQuery={setQuery}
+        onRequest={sendRequest}
+      />
+    ),
+    "Skill management": (
+      <SkillManagement
+        skills={skills}
+        onAddSkill={() => setShowModal(true)}
         onRequest={sendRequest}
       />
     ),
@@ -166,6 +181,7 @@ export default function App() {
       activePage={activePage}
       requestCount={requests.length}
       currentUser={authUser}
+      isAdmin={authUser.role === "admin"}
       onNavigate={setActivePage}
       onNotify={notify}
       onLogout={logout}
@@ -173,6 +189,7 @@ export default function App() {
       <PageHeading
         activePage={activePage}
         onAddSkill={() => setShowModal(true)}
+        showAction={activePage !== "Overview"}
       />
       {page}
       {showModal && (
