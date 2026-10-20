@@ -35,12 +35,12 @@ export default function AppShell({
         <header className="topbar flex items-center">
           <div className="brand">
             <span className="brand-mark">
-              <Sparkles size={16} />
+              <Sparkles size={20} />
             </span>
             <span>
               Skill<span className="brand-accent">Swap</span>
             </span>
-            <small className="brand-tagline">Student Skill Exchange Platform</small>
+            <small className="brand-tagline">Campus</small>
           </div>
           <nav className="primary-nav flex items-center" aria-label="Workspace navigation">
             {workspaceItems.map(([page, label, Icon]) => (

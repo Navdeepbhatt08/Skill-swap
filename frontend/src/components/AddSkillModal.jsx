@@ -26,7 +26,7 @@ export default function AddSkillModal({ onClose, onAdd }) {
           disabled={!name.trim()}
           onClick={submit}
         >
-          Add to profile <Plus size={16} />
+          Add to profile 
         </button>
       </div>
     </div>

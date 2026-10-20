@@ -37,6 +37,8 @@ export default function Login({ onLogin, onClose }) {
       {error && <p className="auth-error">{error}</p>}
       <button className="primary-button auth-submit" disabled={loading}>{loading ? "Connecting..." : mode === "login" ? "Enter SkillSwap" : "Create my profile"} <ArrowRight size={17} /></button>
     </form>
-    {mode === "login" && <p className="demo-login"><LockKeyhole size={14} /> Demo: aarav@skillswap.app / demo1234</p>}
+    {mode === "login" && <p className="demo-login"><LockKeyhole size={14} /> Demo: navdeep9557@gmail.com / Pass:  12345678 </p>
+    
+    }
   </section></main>;
 }

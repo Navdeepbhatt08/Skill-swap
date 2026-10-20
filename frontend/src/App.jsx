@@ -136,8 +136,10 @@ export default function App() {
       >
         <PageHeading activePage="Overview" showAction={false} />
         <Overview
+          skills={skills}
           onAddSkill={() => setShowModal("login")}
-          setPage={() => notify("Log in to explore the full community.")}
+          onRequest={() => setShowModal("login")}
+          setPage={() => setShowModal("login")}
         />
         {notice && <div className="toast"><Check size={16} />{notice}</div>}
         {showModal === "login" && <Login onLogin={setAuthUser} onClose={() => setShowModal(false)} />}

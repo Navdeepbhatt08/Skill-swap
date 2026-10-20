@@ -1,26 +1,45 @@
-import { LibraryBig, Plus, Search } from "lucide-react";
+import { ArrowRight, Compass, Plus } from "lucide-react";
+import SkillCard from "../components/SkillCard";
 
-export default function Overview({ onAddSkill, setPage }) {
+export default function Overview({ skills = [], onAddSkill, setPage, onRequest }) {
+  const featured = skills.slice(0, 3);
+
   return (
-    <section className="dashboard-actions-panel mx-auto grid max-w-5xl gap-10">
-      <div className="dashboard-actions-copy min-w-0">
-        <span className="eyebrow">Your learning space</span>
-        <h2>What would you like to do?</h2>
-        <p>Share what you know or find your next skill to learn.</p>
-      </div>
-      <div className="dashboard-actions grid w-full gap-3">
-        <div className="dashboard-skill-actions grid w-full grid-cols-2 gap-3">
-          <button className="primary-button flex w-full items-center justify-center" onClick={onAddSkill}>
-            <Plus size={17} /> Add skills
+    <div className="overview-container">
+      <section className="dashboard-actions-panel">
+        <div className="dashboard-actions-copy">
+          <span className="eyebrow">Learning Space</span>
+          <h2>What would you like to exchange today?</h2>
+          <p>Teach a skill you master, or connect with peers to learn something new.</p>
+        </div>
+        <div className="dashboard-actions">
+          <button className="primary-button" onClick={onAddSkill}>
+            <Plus size={16} /> Add a skill
           </button>
-          <button className="outline-button flex w-full items-center justify-center" onClick={() => setPage("Discover skills")}>
-            <Search size={17} /> Find skills
+          <button className="outline-button" onClick={() => setPage("Discover skills")}>
+            <Compass size={16} /> Discover skills
           </button>
         </div>
-        <button className="outline-button dashboard-library-action flex w-full items-center justify-center" onClick={() => setPage("Discover skills")}>
-          <LibraryBig size={17} /> Browse library
-        </button>
-      </div>
-    </section>
+      </section>
+
+      {featured.length > 0 && (
+        <section className="overview-featured-section">
+          <div className="section-top">
+            <div>
+              <span className="eyebrow">Community Highlights</span>
+              <h3>Popular skills to learn</h3>
+            </div>
+            <button className="text-button" onClick={() => setPage("Discover skills")}>
+              View all <ArrowRight size={14} />
+            </button>
+          </div>
+          <div className="discover-grid">
+            {featured.map((skill) => (
+              <SkillCard key={skill.id} skill={skill} onRequest={onRequest} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
