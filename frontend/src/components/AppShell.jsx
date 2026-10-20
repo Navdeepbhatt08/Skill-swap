@@ -35,7 +35,7 @@ export default function AppShell({
         <header className="topbar flex items-center">
           <div className="brand">
             <span className="brand-mark">
-              <Sparkles size={20} />
+              <Sparkles size={20 } />
             </span>
             <span>
               Skill<span className="brand-accent">Swap</span>
@@ -57,6 +57,7 @@ export default function AppShell({
               </button>
             ))}
           </nav>
+          
           {isAdmin && (
             <button
               className={activePage === "Admin panel" ? "nav-item active admin-nav-item" : "nav-item admin-nav-item"}
