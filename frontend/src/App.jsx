@@ -57,14 +57,18 @@ export default function App() {
 
   useEffect(() => {
     if (!authUser) return;
-    loadWorkspaceData().then(([nextSkills, nextUsers, nextRequests]) => {
-      setSkills(nextSkills);
-      setUsers(nextUsers);
-      setRequests(nextRequests);
-    }).catch(() => {
-      clearSession();
-      setAuthUser(null);
-    });
+    loadWorkspaceData()
+      .then(([nextSkills, nextUsers, nextRequests]) => {
+        setSkills(nextSkills);
+        setUsers(nextUsers);
+        setRequests(nextRequests);
+      })
+      .catch((err) => {
+        if (err?.status === 401) {
+          clearSession();
+          setAuthUser(null);
+        }
+      });
   }, [authUser]);
 
   const filteredSkills = useMemo(

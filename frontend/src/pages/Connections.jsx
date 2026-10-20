@@ -11,7 +11,7 @@ export default function Connections({ users, onRequest }) {
       </div>
       <div className="people-grid">
         {users.map((user) => (
-          <article className="person-card" key={user.id}>
+          <article className="person-card" key={user._id || user.id}>
             <div className="person-top">
               <div className="avatar avatar-peach">{user.avatar}</div>
               <span className={user.available ? "online" : "offline"}>
@@ -21,12 +21,12 @@ export default function Connections({ users, onRequest }) {
             <h4>{user.name}</h4>
             <p>{user.role}</p>
             <div className="tag-row">
-              {user.teaches.map((skill) => (
+              {(user.teaches || []).map((skill) => (
                 <span className="tag teach" key={skill}>
                   Teaches {skill}
                 </span>
               ))}
-              {user.learns.map((skill) => (
+              {(user.learns || []).map((skill) => (
                 <span className="tag learn" key={skill}>
                   Learns {skill}
                 </span>
@@ -34,7 +34,7 @@ export default function Connections({ users, onRequest }) {
             </div>
             <button
               className="outline-button"
-              onClick={() => onRequest(user.teaches[0], "Exchange")}
+              onClick={() => onRequest(user.teaches?.[0] || "Skill exchange", "Exchange")}
             >
               Start an exchange <ChevronRight size={15} />
             </button>

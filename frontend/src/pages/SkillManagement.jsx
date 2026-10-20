@@ -18,7 +18,7 @@ export default function SkillManagement({ skills, onAddSkill, onRequest }) {
             </p>
             <div className="discover-grid">
                 {skills.map((skill) => (
-                    <SkillCard key={skill.id} skill={skill} onRequest={onRequest} />
+                    <SkillCard key={skill._id || skill.id} skill={skill} onRequest={onRequest} />
                 ))}
             </div>
         </section>

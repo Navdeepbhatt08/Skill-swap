@@ -6,12 +6,12 @@ export default function Admin({ user }) {
   const [summary, setSummary] = useState(null);
 
   useEffect(() => {
-    if (user.role === "admin") {
+    if (user?.role === "admin") {
       getAdminSummary().then(setSummary).catch(() => setSummary(null));
     }
-  }, [user.role]);
+  }, [user?.role]);
 
-  if (user.role !== "admin") {
+  if (user?.role !== "admin") {
     return (
       <section className="single-panel">
         <h3>Admin access required</h3>

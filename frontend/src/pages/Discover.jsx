@@ -19,7 +19,7 @@ export default function Discover({ skills, query, setQuery, onRequest }) {
       </div>
       <div className="discover-grid">
         {skills.map((skill) => (
-          <SkillCard key={skill.id} skill={skill} onRequest={onRequest} />
+          <SkillCard key={skill._id || skill.id} skill={skill} onRequest={onRequest} />
         ))}
       </div>
       {skills.length === 0 && (

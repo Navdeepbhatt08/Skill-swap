@@ -35,7 +35,7 @@ export default function Overview({ skills = [], onAddSkill, setPage, onRequest }
           </div>
           <div className="discover-grid">
             {featured.map((skill) => (
-              <SkillCard key={skill.id} skill={skill} onRequest={onRequest} />
+              <SkillCard key={skill._id || skill.id} skill={skill} onRequest={onRequest} />
             ))}
           </div>
         </section>

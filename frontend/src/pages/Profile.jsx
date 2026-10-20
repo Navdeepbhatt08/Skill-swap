@@ -23,7 +23,7 @@ export default function Profile({ user, onRequest }) {
         <div className="profile-section">
           <span className="eyebrow">I can teach</span>
           <div className="profile-tags">
-                {user.teaches.map((skill) => (
+            {(user.teaches || []).map((skill) => (
               <span className="profile-tag" key={skill}>
                 {skill}
               </span>
@@ -34,7 +34,7 @@ export default function Profile({ user, onRequest }) {
       <div className="single-panel want-panel">
         <span className="eyebrow">I want to learn</span>
         <h3>What is next?</h3>
-            {user.learns.map((skill) => (
+        {(user.learns || []).map((skill) => (
           <div className="want-row" key={skill}>
             <span>{skill}</span>
             <button className="circle-button" onClick={() => onRequest(skill)}>

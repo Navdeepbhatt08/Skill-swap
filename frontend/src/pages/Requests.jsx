@@ -17,7 +17,7 @@ export default function Requests({ requests }) {
           <span>Date</span>
         </div>
         {requests.map((request) => (
-          <div className="table-row" key={request.id}>
+          <div className="table-row" key={request._id || request.id}>
             <strong>{request.skill}</strong>
             <span>{request.from}</span>
             <span>{request.type}</span>

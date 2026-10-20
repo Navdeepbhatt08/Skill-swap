@@ -1,4 +1,5 @@
 const tokenKey = "skillswap_token";
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 function headers() {
   const token = localStorage.getItem(tokenKey);
@@ -6,12 +7,19 @@ function headers() {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(path, {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = API_BASE_URL ? `${API_BASE_URL}${normalizedPath}` : normalizedPath;
+
+  const response = await fetch(url, {
     ...options,
     headers: { ...headers(), ...options.headers },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || "Request failed");
+  if (!response.ok) {
+    const error = new Error(data.message || "Request failed");
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 
