@@ -1,5 +1,7 @@
 const tokenKey = "skillswap_token";
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "")
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
 function headers() {
   const token = localStorage.getItem(tokenKey);
@@ -26,9 +28,16 @@ async function request(path, options = {}) {
 export function loadWorkspaceData() {
   return Promise.all([
     request("/api/skills"),
-    request("/api/users"),
     request("/api/requests"),
   ]);
+}
+
+export function getDashboard() {
+  return request("/api/dashboard");
+}
+
+export function getMatches() {
+  return request("/api/matches");
 }
 
 export function login(email, password) {
@@ -47,19 +56,108 @@ export function register(user) {
   });
 }
 
-export function createRequest(skill, type) {
+/**
+ * Send a skill exchange request to the skill's owner.
+ * @param {string} skill - Skill name
+ * @param {string} skillId - Skill document id
+ * @param {string} toUserId - The owner's user id
+ * @param {string} type - "Learn" or "Exchange"
+ * @param {string} message - Optional message
+ */
+export function createRequest(skill, skillId, toUserId, type = "Learn", message = "") {
   return request("/api/requests", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ skill, type }),
+    body: JSON.stringify({ skill, skillId, toUserId, type, message }),
   });
 }
 
-export function createSkill(name) {
+export function updateRequestStatus(requestId, status) {
+  return request(`/api/requests/${requestId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function getConnections() {
+  return request("/api/connections");
+}
+
+export function getNotifications() {
+  return request("/api/notifications");
+}
+
+export function getMessages(userId) {
+  return request(`/api/messages/${userId}`);
+}
+
+export function uploadResource(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request("/api/resources/upload", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function sendMessage(userId, text, resource) {
+  return request(`/api/messages/${userId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, resource }),
+  });
+}
+
+export function getSessions() {
+  return request("/api/sessions");
+}
+
+export function createSession(session) {
+  return request("/api/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(session),
+  });
+}
+
+export function updateSessionStatus(sessionId, status) {
+  return request(`/api/sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function getReviews(userId) {
+  return request(`/api/reviews/user/${userId}`);
+}
+
+export function createReview(sessionId, rating, comment) {
+  return request("/api/reviews", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, rating, comment }),
+  });
+}
+
+export function createSkill(name, category, level) {
   return request("/api/skills", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, category, level }),
+  });
+}
+
+export function deleteSkill(skillId) {
+  return request(`/api/skills/${skillId}`, { method: "DELETE" });
+}
+
+export function updateMyProfile(updates) {
+  return request("/api/auth/me", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
   });
 }
 

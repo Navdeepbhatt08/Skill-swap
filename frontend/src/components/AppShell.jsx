@@ -6,14 +6,11 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
-  Users,
 } from "lucide-react";
 
 const workspaceItems = [
   ["Overview", "Overview", LayoutDashboard],
-  ["Skill management", "Skills", Sparkles],
   ["Discover skills", "Discover", Compass],
-  ["My connections", "Matching", Users],
   ["Requests", "Requests", BookOpen],
   ["My profile", "Profile", UserRound],
 ];
@@ -25,6 +22,7 @@ export default function AppShell({
   onNavigate,
   onLogout,
   onLogin,
+  notificationCount = 0,
   isAdmin = false,
   publicMode = false,
   children,
@@ -53,6 +51,9 @@ export default function AppShell({
                 <span>{label}</span>
                 {page === "Requests" && requestCount > 0 && (
                   <b className="nav-count">{requestCount}</b>
+                )}
+                {page === "Requests" && notificationCount > 0 && (
+                  <i className="nav-notification-dot" title="New messages or scheduled sessions" />
                 )}
               </button>
             ))}

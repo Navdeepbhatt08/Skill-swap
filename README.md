@@ -2,11 +2,61 @@
 
 SkillSwap is a peer-to-peer student skill exchange platform built with React, Vite, Tailwind CSS, Express, and MongoDB.
 
+## Backend structure
+
+The backend uses MongoDB/Mongoose and is organized incrementally around:
+
+- `backend/routes/` for authentication and skill API routes.
+- `backend/middleware/` for authentication and database availability checks.
+- `backend/utils/` for resource validation and public response serializers.
+- `backend/models/` for Mongoose persistence models.
+- `backend/index.js` for application startup, realtime chat, and the remaining API routes.
+
+## Implemented API workflows
+
+Protected APIs use `Authorization: Bearer <JWT>`.
+
+- Authentication: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
+- Skills: `/api/skills`
+- Profiles and matching: `/api/users`, `/api/matches`, `/api/dashboard`
+- Requests: `/api/requests`, `/api/requests/:id`
+- Sessions: `/api/sessions`, `/api/sessions/:id`
+- Reviews: `/api/reviews`, `/api/reviews/user/:userId`
+- Chat: Socket.IO `chat:send` and `/api/messages/:userId`
+- Resources: `POST /api/resources/upload` with multipart field `file` (maximum 10 MB)
+
+## Testing the main workflows
+
+1. Configure `MONGODB_URI` and `JWT_SECRET` in `backend/.env`.
+2. Run `npm run dev`.
+3. Register two users, add teaching and learning skills, and verify reciprocal matches on Discover.
+4. Send a request, accept it from the second account, and verify Chat and Schedule become available.
+5. Schedule, accept, complete, and review a session.
+6. In Chat, use the attachment button to upload a file or share a link.
+7. Refresh the browser and confirm the JWT session and database-backed data persist.
+
+Validation commands:
+
+```powershell
+node --check backend\index.js
+npm run build --prefix frontend
+```
+
+## Core product flows
+
+- Discover peer-owned skills and send targeted learn or exchange requests.
+- Accept a connection to unlock direct chat and contact details.
+- Share resource links or upload files up to 10 MB directly in chat.
+- Schedule, accept, complete, and review practical learning sessions.
+- Build trust with one rating and optional written review per completed session.
+- Manage teaching skills, learning goals, availability, and profile contact details.
+- Monitor community activity through the admin summary dashboard.
+
 ---
 
 ## 🚀 Quick Deployment Guide
 
-You can deploy SkillSwap in one of three ways depending on your preferred platform:
+You can deploy SkillSwap using one of the following platform options:
 
 ### Option 1: Unified Single-Service Deployment (Recommended - Render / Railway / Heroku)
 
@@ -50,16 +100,6 @@ Deploy both the backend and frontend together from this repository as a single w
 
 ---
 
-### Option 3: Docker Deployment
-
-You can run the full production application and MongoDB using Docker:
-
-```bash
-docker compose up -d --build
-```
-
-The application will be live at `http://localhost:5000`.
-
 ---
 
 ## 🔑 Environment Variables Reference
@@ -70,7 +110,16 @@ The application will be live at `http://localhost:5000`.
 | `MONGODB_URI` | MongoDB connection string (Local or MongoDB Atlas) | Backend |
 | `JWT_SECRET` | Secret key for signing authentication tokens | Backend |
 | `CLIENT_URL` | Allowed frontend origin for CORS (comma-separated or empty for all) | Backend |
-| `VITE_API_URL` | Base URL of backend API (leave empty if backend serves frontend) | Frontend |
+| `VITE_API_URL` | Base URL of backend API (leave empty for local Vite proxy) | Frontend |
+
+### Database initialization and migrations
+
+This project uses Mongoose schemas and does not currently have a separate
+migration framework. On the first successful MongoDB connection, the backend's
+idempotent `seedDatabase()` initializer creates the demo users and skills.
+Starting the backend again does not duplicate those records. Future schema
+changes should be handled with an explicit versioned migration before deploying
+to an existing production volume.
 
 ---
 

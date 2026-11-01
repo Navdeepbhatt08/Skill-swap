@@ -23,7 +23,7 @@ export default function Login({ onLogin, onClose }) {
   };
 
   return <main className={onClose ? "auth-screen auth-overlay" : "auth-screen"}><section className="auth-card">
-    {onClose && <button className="modal-close" onClick={onClose} aria-label="Close login">×</button>}
+    {onClose && <button className="modal-close " onClick={onClose} aria-label="Close login">×</button>}
     <div className="brand auth-brand"><span className="brand-mark"><Sparkles size={16} /></span><span>skill<span className="brand-accent">swap</span></span></div>
     <span className="eyebrow">THE CAMPUS CIRCLE</span>
     <h1>Learn together.<br /><em>Grow further.</em></h1>
@@ -37,7 +37,7 @@ export default function Login({ onLogin, onClose }) {
       {error && <p className="auth-error">{error}</p>}
       <button className="primary-button auth-submit" disabled={loading}>{loading ? "Connecting..." : mode === "login" ? "Enter SkillSwap" : "Create my profile"} <ArrowRight size={17} /></button>
     </form>
-    {mode === "login" && <p className="demo-login"><LockKeyhole size={14} /> Demo: navdeep9557@gmail.com / Pass:  12345678 </p>
+    {mode === "login" && <p className="demo-login"><LockKeyhole size={15} /> Demo: navdeep9557@gmail.com / Pass:  12345678 </p>
     
     }
   </section></main>;

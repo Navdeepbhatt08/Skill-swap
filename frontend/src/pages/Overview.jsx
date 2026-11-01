@@ -1,11 +1,19 @@
 import { ArrowRight, Compass, Plus } from "lucide-react";
 import SkillCard from "../components/SkillCard";
 
-export default function Overview({ skills = [], onAddSkill, setPage, onRequest }) {
+export default function Overview({ skills = [], onAddSkill, setPage, onRequest, dashboard }) {
   const featured = skills.slice(0, 3);
 
   return (
     <div className="overview-container">
+      {dashboard && (
+        <div className="dashboard-metrics">
+          <div><strong>{dashboard.offeredSkills}</strong><span>Skills offered</span></div>
+          <div><strong>{dashboard.wantedSkills}</strong><span>Learning goals</span></div>
+          <div><strong>{dashboard.pendingRequests}</strong><span>Pending requests</span></div>
+          <div><strong>{dashboard.upcomingSessions}</strong><span>Upcoming sessions</span></div>
+        </div>
+      )}
       <section className="dashboard-actions-panel">
         <div className="dashboard-actions-copy">
           <span className="eyebrow">Learning Space</span>

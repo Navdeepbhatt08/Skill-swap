@@ -14,9 +14,12 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["student", "admin"], default: "student" },
     department: { type: String, default: "Student" },
     avatar: { type: String, default: "SS" },
+    bio: { type: String, trim: true, maxlength: 500, default: "" },
+    profileImage: { type: String, trim: true, default: "" },
     teaches: { type: [String], default: [] },
     learns: { type: [String], default: [] },
     available: { type: Boolean, default: true },
+    whatsapp: { type: String, default: "" },
   },
   { timestamps: true },
 );
