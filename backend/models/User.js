@@ -19,6 +19,16 @@ const userSchema = new mongoose.Schema(
     teaches: { type: [String], default: [] },
     learns: { type: [String], default: [] },
     available: { type: Boolean, default: true },
+    availability: {
+      type: [{
+        day: { type: String, trim: true },
+        start: { type: String, trim: true },
+        end: { type: String, trim: true },
+      }],
+      default: [],
+    },
+    bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    mentorCapacity: { type: Number, min: 0, default: 3 },
     whatsapp: { type: String, default: "" },
   },
   { timestamps: true },

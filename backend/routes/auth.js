@@ -50,7 +50,7 @@ router.get("/me", requireDatabase, requireAuth, (req, res) => res.json({ user: p
 
 router.patch("/me", requireDatabase, requireAuth, async (req, res) => {
   try {
-    const allowed = ["whatsapp", "department", "teaches", "learns", "available", "bio", "profileImage", "name"];
+    const allowed = ["whatsapp", "department", "teaches", "learns", "available", "availability", "mentorCapacity", "bio", "profileImage", "name"];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

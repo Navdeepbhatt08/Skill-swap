@@ -113,6 +113,7 @@ export default function Requests({
       Pending: "pending",
       Accepted: "accepted",
       Declined: "declined",
+      Cancelled: "declined",
     }[status] || "pending");
 
   return (
@@ -158,6 +159,8 @@ export default function Requests({
                     From: <strong>{r.from}</strong>
                   </span>
                   {r.message && <p className="request-message">"{r.message}"</p>}
+                  {r.counterProposal?.note && <p className="request-message">Counter-proposal: "{r.counterProposal.note}"</p>}
+                  {r.history?.length > 1 && <small className="request-date">History: {r.history.map((item) => item.status).join(" → ")}</small>}
                   <span className="request-date">
                     <Clock size={12} /> {r.date}
                   </span>

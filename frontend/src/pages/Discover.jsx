@@ -1,25 +1,48 @@
-import { useMemo, useState } from "react";
-import { ListFilter, Search, SearchX, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bookmark, ListFilter, Search, SearchX, X } from "lucide-react";
 import SkillCard from "../components/SkillCard";
+import { discoverSkills, toggleBookmark } from "../services/api";
 
-export default function Discover({ skills = [], matches = [], query = "", setQuery, onRequest }) {
+export default function Discover({ skills = [], matches = [], query = "", setQuery, onRequest, currentUserId }) {
   const [selectedCategory, setSelectedCategory] = useState("All categories");
+  const [selectedLevel, setSelectedLevel] = useState("All levels");
+  const [results, setResults] = useState(skills);
+  const [bookmarked, setBookmarked] = useState(new Set());
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    discoverSkills({
+      query,
+      category: selectedCategory === "All categories" ? "" : selectedCategory,
+      level: selectedLevel === "All levels" ? "" : selectedLevel,
+    }).then((nextSkills) => {
+      if (active) {
+        setResults(nextSkills);
+        setLoadError("");
+      }
+    }).catch((error) => {
+      if (active) setLoadError(error.message || "Could not load discovery results.");
+    });
+    return () => { active = false; };
+  }, [query, selectedCategory, selectedLevel]);
+
   const normalizedQuery = query.trim().toLowerCase();
   const hasQuery = normalizedQuery.length > 0;
 
   const categories = useMemo(
     () =>
       [...new Set(
-        skills
+        results
           .map((skill) => skill.category?.trim())
           .filter(Boolean),
       )].sort((first, second) => first.localeCompare(second)),
-    [skills],
+    [results],
   );
 
   const filteredSkills = useMemo(
     () =>
-      skills.filter((skill) => {
+      results.filter((skill) => {
         const matchesQuery =
           !normalizedQuery ||
           `${skill.name || ""} ${skill.category || ""}`
@@ -28,12 +51,15 @@ export default function Discover({ skills = [], matches = [], query = "", setQue
         const matchesCategory =
           selectedCategory === "All categories" ||
           skill.category === selectedCategory;
-        return matchesQuery && matchesCategory;
+        const matchesLevel =
+          selectedLevel === "All levels" ||
+          skill.level === selectedLevel;
+        return matchesQuery && matchesCategory && matchesLevel;
       }),
-    [normalizedQuery, selectedCategory, skills],
+    [normalizedQuery, results, selectedCategory, selectedLevel],
   );
 
-  const hasActiveFilters = hasQuery || selectedCategory !== "All categories";
+  const hasActiveFilters = hasQuery || selectedCategory !== "All categories" || selectedLevel !== "All levels";
   const resultLabel = `${filteredSkills.length} ${
     filteredSkills.length === 1 ? "skill" : "skills"
   } available`;
@@ -41,6 +67,21 @@ export default function Discover({ skills = [], matches = [], query = "", setQue
   const clearFilters = () => {
     setQuery("");
     setSelectedCategory("All categories");
+    setSelectedLevel("All levels");
+  };
+
+  const handleBookmark = async (ownerId) => {
+    try {
+      const response = await toggleBookmark(ownerId);
+      setBookmarked((current) => {
+        const next = new Set(current);
+        if (response.bookmarked) next.add(ownerId);
+        else next.delete(ownerId);
+        return next;
+      });
+    } catch (error) {
+      setLoadError(error.message || "Could not update bookmark.");
+    }
   };
 
   return (
@@ -48,9 +89,18 @@ export default function Discover({ skills = [], matches = [], query = "", setQue
       {matches.length > 0 && (
         <div className="border-b border-[var(--border)] bg-indigo-50/50 px-4 py-4 sm:px-6 lg:px-7">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--primary)]">Reciprocal matches</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {matches.slice(0, 3).map((match) => (
-              <span className="pill" key={match.user.id}>{match.user.name}: {match.score}% match</span>
+              <article className="match-card" key={match.user.id}>
+                <div className="match-card__top">
+                  <span className="avatar avatar-small">{match.user.avatar}</span>
+                  <div><strong>{match.user.name}</strong><small>{match.score}% compatibility</small></div>
+                </div>
+                <p>{match.matchedSkills.join(", ") || "Compatible learning goals"}</p>
+                <div className="match-card__skills">
+                  {(match.user.teaches || []).slice(0, 3).map((skill) => <span key={skill}>{skill}</span>)}
+                </div>
+              </article>
             ))}
           </div>
         </div>
@@ -108,6 +158,12 @@ export default function Discover({ skills = [], matches = [], query = "", setQue
                 ))}
               </select>
             </div>
+            <select value={selectedLevel} onChange={(event) => setSelectedLevel(event.target.value)} className="rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm font-medium text-[var(--ink)]">
+              <option>All levels</option>
+              <option>Beginner</option>
+              <option>Intermediate</option>
+              <option>Advanced</option>
+            </select>
             <span
               className="shrink-0 text-xs font-semibold text-[var(--muted)] sm:text-right"
               aria-live="polite"
@@ -119,10 +175,18 @@ export default function Discover({ skills = [], matches = [], query = "", setQue
       </div>
 
       <div className="p-4 sm:p-6 lg:p-7">
+        {loadError && <p className="form-error mb-4">{loadError}</p>}
         {filteredSkills.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredSkills.map((skill) => (
-              <SkillCard key={skill._id || skill.id} skill={skill} onRequest={onRequest} />
+              <div key={skill._id || skill.id} className="relative">
+                <SkillCard key={skill._id || skill.id} skill={skill} onRequest={onRequest} />
+                {skill.owner?.id && (
+                  <button type="button" className="absolute right-4 top-4 rounded-lg bg-white/90 p-2 text-[var(--primary)] shadow" onClick={() => handleBookmark(skill.owner.id)} aria-label="Bookmark student profile">
+                    <Bookmark size={16} fill={bookmarked.has(String(skill.owner.id)) ? "currentColor" : "none"} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         ) : (

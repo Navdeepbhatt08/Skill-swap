@@ -40,6 +40,21 @@ export function getMatches() {
   return request("/api/matches");
 }
 
+export function discoverSkills(params = {}) {
+  const search = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value !== "" && value !== undefined && value !== false),
+  );
+  return request(`/api/discover${search.toString() ? `?${search}` : ""}`).catch((error) => {
+    // Older running deployments may not have the dedicated discovery route yet.
+    if (error.status !== 404) throw error;
+    return request("/api/skills");
+  });
+}
+
+export function toggleBookmark(userId) {
+  return request(`/api/bookmarks/${userId}`, { method: "PATCH" });
+}
+
 export function login(email, password) {
   return request("/api/auth/login", {
     method: "POST",
@@ -72,11 +87,11 @@ export function createRequest(skill, skillId, toUserId, type = "Learn", message 
   });
 }
 
-export function updateRequestStatus(requestId, status) {
+export function updateRequestStatus(requestId, status, counterProposal) {
   return request(`/api/requests/${requestId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, counterProposal }),
   });
 }
 
@@ -141,11 +156,19 @@ export function createReview(sessionId, rating, comment) {
   });
 }
 
-export function createSkill(name, category, level) {
+export function createSkill(name, category, level, details = {}) {
   return request("/api/skills", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, category, level }),
+    body: JSON.stringify({ name, category, level, ...details }),
+  });
+}
+
+export function updateSkill(skillId, updates) {
+  return request(`/api/skills/${skillId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
   });
 }
 

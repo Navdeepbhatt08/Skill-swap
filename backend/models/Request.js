@@ -11,10 +11,22 @@ const requestSchema = new mongoose.Schema(
     wantedSkill: { type: String, trim: true, default: "" },
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "Declined", "Cancelled"],
+      enum: ["Pending", "Accepted", "Rejected", "Declined", "Cancelled"],
       default: "Pending",
     },
     message: { type: String, default: "" },
+    counterProposal: {
+      day: { type: String, default: "" },
+      start: { type: String, default: "" },
+      end: { type: String, default: "" },
+      note: { type: String, default: "" },
+    },
+    history: [{
+      status: { type: String, required: true },
+      note: { type: String, default: "" },
+      changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      changedAt: { type: Date, default: Date.now },
+    }],
   },
   { timestamps: true },
 );

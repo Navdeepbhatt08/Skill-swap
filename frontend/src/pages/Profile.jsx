@@ -3,10 +3,11 @@ import { Plus, MessageCircle, Mail, Save, X } from "lucide-react";
 import { getReviews, updateMyProfile, saveSession } from "../services/api";
 import SkillCard from "../components/SkillCard";
 
-export default function Profile({ user, skills = [], onAddSkill, onRequest, onDeleteSkill }) {
+export default function Profile({ user, skills = [], onAddSkill, onRequest, onDeleteSkill, onEditSkill }) {
   const [editingContact, setEditingContact] = useState(false);
   const [whatsapp, setWhatsapp] = useState(user.whatsapp || "");
   const [bio, setBio] = useState(user.bio || "");
+  const [availability, setAvailability] = useState(user.availability?.[0]?.start || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [teaches, setTeaches] = useState(user.teaches || []);
@@ -22,7 +23,11 @@ export default function Profile({ user, skills = [], onAddSkill, onRequest, onDe
   const handleSaveContact = async () => {
     setSaving(true);
     try {
-      const res = await updateMyProfile({ whatsapp, bio });
+      const res = await updateMyProfile({
+        whatsapp,
+        bio,
+        availability: availability ? [{ day: "Flexible", start: availability, end: availability }] : [],
+      });
       // Persist updated user to session
       const updatedUser = { ...user, whatsapp: res.user.whatsapp };
       saveSession({ token: localStorage.getItem("skillswap_token"), user: updatedUser });
@@ -119,6 +124,13 @@ export default function Profile({ user, skills = [], onAddSkill, onRequest, onDe
               <label className="profile-contact-label">
                 <MessageCircle size={14} /> WhatsApp Number
               </label>
+              <input
+                type="text"
+                className="profile-contact-input"
+                placeholder="Weekly availability, e.g. Tue/Thu evenings"
+                value={availability}
+                onChange={(event) => setAvailability(event.target.value)}
+              />
               <div className="profile-contact-input-row">
                 <input
                   type="tel"
@@ -199,6 +211,7 @@ export default function Profile({ user, skills = [], onAddSkill, onRequest, onDe
                   skill={skill}
                   onRequest={onRequest}
                   onDelete={onDeleteSkill}
+                  onEdit={onEditSkill}
                 />
               ))}
             </div>

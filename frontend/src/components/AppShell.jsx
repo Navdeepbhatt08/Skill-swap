@@ -3,6 +3,7 @@ import {
   Compass,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -11,6 +12,7 @@ import {
 const workspaceItems = [
   ["Overview", "Overview", LayoutDashboard],
   ["Discover skills", "Discover", Compass],
+  ["Chat", "Chat", MessageCircle],
   ["Requests", "Requests", BookOpen],
   ["My profile", "Profile", UserRound],
 ];

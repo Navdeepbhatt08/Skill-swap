@@ -1,6 +1,6 @@
 import { BookOpen, Plus, Trash2, User } from "lucide-react";
 
-export default function SkillCard({ skill, onRequest, onDelete }) {
+export default function SkillCard({ skill, onRequest, onDelete, onEdit }) {
   const ownerName = skill.owner?.name || null;
 
   return (
@@ -10,6 +10,8 @@ export default function SkillCard({ skill, onRequest, onDelete }) {
       </div>
       <span className="skill-category">{skill.category}</span>
       <h4>{skill.name}</h4>
+      {skill.description && <p className="text-sm text-[var(--muted)]">{skill.description}</p>}
+      {skill.tags?.length > 0 && <div className="flex flex-wrap gap-1">{skill.tags.map((tag) => <span className="skill-category" key={tag}>#{tag}</span>)}</div>}
       {ownerName && (
         <div className="skill-owner">
           <User size={12} />
@@ -21,12 +23,12 @@ export default function SkillCard({ skill, onRequest, onDelete }) {
         <span>{skill.learners} learning</span>
       </div>
       {onDelete ? (
-        <button
-          className="skill-action skill-action--delete"
-          onClick={() => onDelete(skill)}
-        >
-          Delete skill <Trash2 size={14} />
-        </button>
+        <div className="flex gap-2">
+          {onEdit && <button className="skill-action" onClick={() => onEdit(skill)}>Edit</button>}
+          <button className="skill-action skill-action--delete" onClick={() => onDelete(skill)}>
+            Delete skill <Trash2 size={14} />
+          </button>
+        </div>
       ) : ownerName ? (
         <button
           className="skill-action"

@@ -97,6 +97,7 @@ export default function Schedule({ currentUserId, initialUserId, initialSkill = 
             )}
             {session.status === "Pending" && incoming && <div className="request-actions"><button className="btn-accept" onClick={() => update(session.id, "Accepted")}><Check size={14} /> Accept</button><button className="btn-decline" onClick={() => update(session.id, "Declined")}><X size={14} /> Decline</button></div>}
             {session.status === "Accepted" && <button className="outline-button" onClick={() => update(session.id, "Completed")}>Mark completed</button>}
+            {(session.status === "Pending" || session.status === "Accepted") && !incoming && <button className="text-button" onClick={() => update(session.id, "Cancelled")}>Cancel session</button>}
             {session.status === "Completed" && !session.reviewed && (
               <button className="outline-button" onClick={() => setReviewing(session)}>Rate exchange</button>
             )}

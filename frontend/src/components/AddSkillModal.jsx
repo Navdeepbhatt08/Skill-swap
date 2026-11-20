@@ -4,7 +4,15 @@ import { Plus, X } from "lucide-react";
 export default function AddSkillModal({ onClose, onAdd }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
-  const submit = () => name.trim() && category && onAdd(name.trim(), category);
+  const [level, setLevel] = useState("Beginner");
+  const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
+  const [availability, setAvailability] = useState("");
+  const submit = () => name.trim() && category && onAdd(name.trim(), category, level, {
+    description,
+    tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+    availability: availability ? [{ day: "Flexible", start: availability, end: availability }] : [],
+  });
 
   return (
     <div className="modal-backdrop">
@@ -35,6 +43,14 @@ export default function AddSkillModal({ onClose, onAdd }) {
           <option value="Business">Business</option>
           <option value="Other">Other</option>
         </select>
+        <select value={level} onChange={(event) => setLevel(event.target.value)} aria-label="Skill proficiency">
+          <option>Beginner</option>
+          <option>Intermediate</option>
+          <option>Advanced</option>
+        </select>
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} placeholder="Describe what you can teach" />
+        <input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Tags, comma separated" />
+        <input value={availability} onChange={(event) => setAvailability(event.target.value)} placeholder="Availability, e.g. evenings" />
         <button
           className="primary-button full-button"
           disabled={!name.trim() || !category}

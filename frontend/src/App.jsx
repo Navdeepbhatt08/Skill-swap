@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import AppShell from "./components/AppShell";
 import AddSkillModal from "./components/AddSkillModal";
-import { createRequest, createSkill, deleteSkill, getDashboard, getMatches, getNotifications, loadSession, clearSession, loadWorkspaceData, updateRequestStatus } from "./services/api";
+import { createRequest, createSkill, deleteSkill, getDashboard, getMatches, getNotifications, loadSession, clearSession, loadWorkspaceData, updateRequestStatus, updateSkill } from "./services/api";
 import Overview from "./pages/Overview";
 import Discover from "./pages/Discover";
 import Requests from "./pages/Requests";
@@ -18,13 +18,14 @@ function PageHeading({ activePage, onAddSkill, showAction = true }) {
       <div>
 
         <h1>
-          {activePage === "Overview" ? (
-            <>
-              Make progress <em>together.</em>
-            </>
-          ) : (
-            activePage
-          )}
+          {
+            activePage === "Overview" ? (
+              <>
+                Make progress <em>together.</em>
+              </>
+            ) : (
+              activePage
+            )}
         </h1>
         <p className="heading-copy">
           {activePage === "Overview"
@@ -105,7 +106,7 @@ export default function App() {
     };
   }, [authUser]);
 
-  // Filter skills: only show skills that have an owner (posted by a user)
+  // Filter skills
   const discoverableSkills = skills.filter((skill) => skill.owner != null);
 
   const notify = (message) => {
@@ -113,13 +114,7 @@ export default function App() {
     window.setTimeout(() => setNotice(""), 3500);
   };
 
-  /**
-   * Send a targeted skill exchange request to the skill's owner.
-   * @param {string} skillName
-   * @param {string} skillId
-   * @param {{ id: string, name: string }} owner
-   * @param {string} type
-   */
+
   const sendRequest = async (skillName, skillId, owner, type = "Learn") => {
     if (!authUser) {
       notify("Log in to send a skill exchange request.");
@@ -151,7 +146,6 @@ export default function App() {
     notify(`Request sent to ${owner.name} for ${skillName}!`);
     try {
       const saved = await createRequest(skillName, skillId, owner.id, type);
-      // Replace the optimistic entry with the real one from the server
       setRequests((current) =>
         current.map((r) => (r.id === optimistic.id ? { ...saved, isMine: true } : r))
       );
@@ -170,8 +164,11 @@ export default function App() {
       setRequests((current) =>
         current.map((r) => (String(r.id) === String(requestId) ? { ...r, ...updated } : r))
       );
+      getDashboard().then(setDashboard).catch(() => { });
       if (status === "Accepted") {
         notify("Request accepted! Contact details are now visible.");
+      } else if (status === "Cancelled") {
+        notify("Request cancelled.");
       } else {
         notify("Request declined.");
       }
@@ -180,12 +177,13 @@ export default function App() {
     }
   };
 
-  const addSkill = async (name, category) => {
+  const addSkill = async (name, category, level = "Beginner", details = {}) => {
     const skill = {
       id: `new-${Date.now()}`,
       name,
       category,
-      level: "Beginner",
+      level,
+      ...details,
       color: "mint",
       learners: 0,
       owner: { id: authUser?.id, name: authUser?.name },
@@ -195,7 +193,8 @@ export default function App() {
     setShowModal(false);
     notify(`${name} added to your skills.`);
     try {
-      await createSkill(name, category);
+      await createSkill(name, category, level, details);
+      getDashboard().then(setDashboard).catch(() => { });
     } catch {
       /* optimistic UI keeps demo mode usable */
     }
@@ -211,6 +210,20 @@ export default function App() {
       notify(`${skill.name} deleted from your skills.`);
     } catch (err) {
       notify(err.message || "Could not delete skill.");
+    }
+  };
+
+  const editSkill = async (skill) => {
+    const name = window.prompt("Skill name", skill.name);
+    if (!name || name.trim() === skill.name) return;
+    try {
+      const updated = await updateSkill(skill._id || skill.id, { name: name.trim() });
+      setSkills((current) => current.map((item) => (
+        String(item._id || item.id) === String(skill._id || skill.id) ? { ...item, ...updated } : item
+      )));
+      notify(`${name.trim()} updated.`);
+    } catch (error) {
+      notify(error.message || "Could not update skill.");
     }
   };
 
@@ -284,6 +297,7 @@ export default function App() {
         onAddSkill={() => setShowModal(true)}
         onRequest={sendRequest}
         onDeleteSkill={removeSkill}
+        onEditSkill={editSkill}
       />
     ),
     "Admin panel": <Admin user={authUser} />,

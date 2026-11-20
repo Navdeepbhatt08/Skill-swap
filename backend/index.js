@@ -142,7 +142,7 @@ app.use("/api/skills", skillRoutes);
 app.get("/api/users", requireDatabase, requireAuth, async (_req, res) => {
   try {
     const users = await User.find()
-      .select("name role department avatar teaches learns available")
+      .select("name role department avatar bio profileImage teaches learns available availability bookmarks mentorCapacity")
       .sort({ createdAt: 1 });
     res.json(
       users.map((user) => ({ ...publicUser(user), role: user.department })),
@@ -152,34 +152,177 @@ app.get("/api/users", requireDatabase, requireAuth, async (_req, res) => {
   }
 });
 
-function matchingProfile(viewer, candidate) {
-  const viewerOffers = new Set((viewer.teaches || []).map((skill) => skill.trim().toLowerCase()));
-  const viewerWants = new Set((viewer.learns || []).map((skill) => skill.trim().toLowerCase()));
-  const candidateOffers = new Set((candidate.teaches || []).map((skill) => skill.trim().toLowerCase()));
-  const candidateWants = new Set((candidate.learns || []).map((skill) => skill.trim().toLowerCase()));
-  const viewerToCandidate = [...viewerWants].filter((skill) => candidateOffers.has(skill));
-  const candidateToViewer = [...candidateWants].filter((skill) => viewerOffers.has(skill));
-  const total = viewerWants.size + candidateWants.size;
-  const matched = viewerToCandidate.length + candidateToViewer.length;
+function tokenize(value) {
+  return String(value || "").toLowerCase().match(/[a-z0-9]+/g) || [];
+}
+
+function tfidfCosine(left, right, corpus) {
+  const leftTokens = tokenize(left);
+  const rightTokens = tokenize(right);
+  const terms = [...new Set([...leftTokens, ...rightTokens])];
+  if (!terms.length) return 0;
+  const documents = corpus.map((item) => new Set(tokenize(item)));
+  const vector = (tokens) => terms.map((term) => {
+    const termFrequency = tokens.filter((token) => token === term).length / Math.max(tokens.length, 1);
+    const documentFrequency = documents.filter((document) => document.has(term)).length;
+    return termFrequency * Math.log((documents.length + 1) / (documentFrequency + 1));
+  });
+  const a = vector(leftTokens);
+  const b = vector(rightTokens);
+  const magnitude = (values) => Math.sqrt(values.reduce((sum, value) => sum + value * value, 0));
+  const denominator = magnitude(a) * magnitude(b);
+  return denominator ? a.reduce((sum, value, index) => sum + value * b[index], 0) / denominator : 0;
+}
+
+function availabilityOverlap(left = [], right = []) {
+  return left.some((first) => right.some((second) => (
+    first.day === second.day && first.start < second.end && second.start < first.end
+  )));
+}
+
+function proficiencyBonus(learnerLevel, mentorLevel) {
+  const levels = { Beginner: 1, Intermediate: 2, Advanced: 3 };
+  const learner = levels[learnerLevel] || 1;
+  const mentor = levels[mentorLevel] || 1;
+  return mentor >= learner ? 0.1 : -0.05;
+}
+
+function matchingProfile(viewer, candidate, offeredSkill = null, offeredLevel = "Intermediate") {
+  const wanted = (viewer.learns || []).map((skill) => String(skill).trim());
+  const offers = offeredSkill ? [offeredSkill] : (candidate.teaches || []);
+  const corpus = [...wanted, ...offers, ...wanted.flatMap((skill) => tokenize(skill))];
+  const scored = offers.map((offer) => ({
+    skill: offer,
+    similarity: Math.max(...wanted.map((want) => tfidfCosine(want, offer, corpus)), 0),
+  })).sort((a, b) => b.similarity - a.similarity)[0];
+  const reciprocal = (candidate.learns || []).some((want) =>
+    (viewer.teaches || []).some((offer) => tfidfCosine(want, offer, corpus) >= 0.2));
+  const overlap = availabilityOverlap(viewer.availability, candidate.availability);
+  const similarity = scored?.similarity || 0;
+  const score = Math.max(0, Math.min(1, similarity + (overlap ? 0.12 : 0) + (reciprocal ? 0.1 : 0)
+    + proficiencyBonus("Beginner", offeredLevel)));
   return {
-    score: total ? Math.round((matched / total) * 100) : 0,
-    matchedSkills: [...new Set([...viewerToCandidate, ...candidateToViewer])],
-    reciprocal: { viewerToCandidate, candidateToViewer },
+    score: Math.round(score * 100),
+    matchedSkills: scored ? [scored.skill] : [],
+    reciprocal,
+    availabilityOverlap: overlap,
   };
+}
+
+function stableMentorAssignments(learners, mentors) {
+  const queues = new Map(learners.map((learner) => [
+    String(learner._id),
+    mentors
+      .map((mentor) => ({ mentor, score: matchingProfile(learner, mentor).score }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => String(entry.mentor._id)),
+  ]));
+  const assigned = new Map();
+  const held = new Map(mentors.map((mentor) => [String(mentor._id), []]));
+  const free = learners.map((learner) => String(learner._id));
+  while (free.length) {
+    const learnerId = free.shift();
+    const preferenceQueue = queues.get(learnerId) || [];
+    const mentorId = preferenceQueue.shift();
+    if (!mentorId) continue;
+    const mentor = mentors.find((item) => String(item._id) === mentorId);
+    const proposals = [...(held.get(mentorId) || []), learnerId]
+      .sort((left, right) => matchingProfile(
+        learners.find((item) => String(item._id) === left),
+        mentor,
+      ).score - matchingProfile(
+        learners.find((item) => String(item._id) === right),
+        mentor,
+      ).score)
+      .reverse();
+    const capacity = mentor.mentorCapacity || 3;
+    held.set(mentorId, proposals.slice(0, capacity));
+    proposals.slice(capacity).forEach((rejected) => {
+      assigned.delete(rejected);
+      if ((queues.get(rejected) || []).length) free.push(rejected);
+    });
+    held.get(mentorId).forEach((accepted) => assigned.set(accepted, mentorId));
+  }
+  return assigned;
 }
 
 app.get("/api/matches", requireDatabase, requireAuth, async (req, res) => {
   try {
     const candidates = await User.find({ _id: { $ne: req.user._id } })
-      .select("name email role department avatar bio profileImage teaches learns available")
+      .select("name email role department avatar bio profileImage teaches learns available availability mentorCapacity")
       .sort({ createdAt: 1 });
+    const candidateSkills = await Skill.find({ owner: { $in: candidates.map((candidate) => candidate._id) } })
+      .select("owner name level");
+    const skillLevels = new Map(candidateSkills.map((skill) => [`${skill.owner}:${skill.name.toLowerCase()}`, skill.level]));
+    const assignments = stableMentorAssignments([req.user], candidates);
     const matches = candidates
-      .map((candidate) => ({ user: publicUser(candidate), ...matchingProfile(req.user, candidate) }))
-      .filter((match) => match.score > 0)
+      .map((candidate) => {
+        const provisional = matchingProfile(req.user, candidate);
+        const skill = provisional.matchedSkills[0] || candidate.teaches?.[0] || "";
+        const level = skillLevels.get(`${candidate._id}:${skill.toLowerCase()}`) || "Intermediate";
+        const profile = matchingProfile(req.user, candidate, skill, level);
+        return {
+          user: publicUser(candidate),
+          offeredSkill: skill,
+          wantedSkill: req.user.learns?.[0] || "",
+          proficiency: level,
+          availability: candidate.availability || [],
+          ...profile,
+          stable: assignments.get(String(req.user._id)) === String(candidate._id),
+        };
+      })
+      .filter((match) => match.score > 0 && match.stable)
       .sort((a, b) => b.score - a.score);
     res.json(matches);
   } catch (error) {
     res.status(500).json({ message: "Could not calculate matches", detail: error.message });
+  }
+});
+
+app.get("/api/discover", requireDatabase, requireAuth, async (req, res) => {
+  try {
+    const query = String(req.query.query || "").trim().toLowerCase();
+    const category = String(req.query.category || "").trim();
+    const level = String(req.query.level || "").trim();
+    const availability = req.query.availability === "true";
+    const skills = await Skill.find({ owner: { $ne: req.user._id } })
+      .populate("owner", "name email avatar department bio profileImage available availability bookmarks mentorCapacity")
+      .sort({ createdAt: -1 });
+    const results = skills.filter((skill) => {
+      const owner = skill.owner;
+      const haystack = [skill.name, skill.category, skill.description, ...(skill.tags || []), owner?.name].join(" ").toLowerCase();
+      return (!query || haystack.includes(query))
+        && (!category || skill.category === category)
+        && (!level || skill.level === level)
+        && (!availability || Boolean(owner?.available && owner?.availability?.length));
+    }).map((skill) => ({
+      _id: skill._id,
+      name: skill.name,
+      category: skill.category,
+      level: skill.level,
+      description: skill.description,
+      tags: skill.tags,
+      availability: skill.availability,
+      owner: skill.owner ? { ...publicUser(skill.owner), availability: skill.owner.availability || [] } : null,
+    }));
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ message: "Could not discover skills", detail: error.message });
+  }
+});
+
+app.patch("/api/bookmarks/:userId", requireDatabase, requireAuth, async (req, res) => {
+  try {
+    if (String(req.params.userId) === String(req.user._id)) return res.status(400).json({ message: "You cannot bookmark yourself" });
+    const exists = (req.user.bookmarks || []).some((id) => String(id) === String(req.params.userId));
+    const update = exists
+      ? { $pull: { bookmarks: req.params.userId } }
+      : { $addToSet: { bookmarks: req.params.userId } };
+    await User.findByIdAndUpdate(req.user._id, update);
+    res.json({ bookmarked: !exists, userId: req.params.userId });
+  } catch (error) {
+    res.status(500).json({ message: "Could not update bookmark", detail: error.message });
   }
 });
 
@@ -211,14 +354,10 @@ app.get("/api/dashboard", requireDatabase, requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/requests — returns ONLY requests that:
-//   1. Have a valid `to` field (old requests without `to` are excluded entirely)
-//   2. The logged-in user is either the sender (from) or the recipient (to)
 app.get("/api/requests", requireDatabase, requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
     const requests = await Request.find({
-      // Must have a `to` field — filters out all legacy requests without a recipient
       to: { $exists: true, $ne: null },
       $or: [{ to: userId }, { from: userId }],
     })
@@ -244,6 +383,8 @@ app.get("/api/requests", requireDatabase, requireAuth, async (req, res) => {
         wantedSkill: r.wantedSkill || "",
         status: r.status,
         message: r.message || "",
+        counterProposal: r.counterProposal || null,
+        history: r.history || [],
         isMine: String(r.from?._id) === String(userId),
         date: r.createdAt.toLocaleDateString("en-US", {
           month: "short",
@@ -256,7 +397,6 @@ app.get("/api/requests", requireDatabase, requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/admin/requests/stale — removes old requests that have no `to` field (admin only)
 app.delete("/api/admin/requests/stale", requireDatabase, requireAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -270,7 +410,6 @@ app.delete("/api/admin/requests/stale", requireDatabase, requireAuth, async (req
   }
 });
 
-// POST /api/requests — requires a `to` (recipient user id) field
 app.post("/api/requests", requireDatabase, requireAuth, async (req, res) => {
   try {
     const { skill, skillId, toUserId, type, message, offeredSkill, wantedSkill } = req.body;
@@ -284,7 +423,7 @@ app.post("/api/requests", requireDatabase, requireAuth, async (req, res) => {
     const duplicate = await Request.exists({
       from: req.user._id,
       to: toUserId,
-      status: "Pending",
+      status: { $in: ["Pending", "Accepted"] },
       skill: skill || "New skill",
     });
     if (duplicate) return res.status(409).json({ message: "You already have a pending request for this skill" });
@@ -303,6 +442,7 @@ app.post("/api/requests", requireDatabase, requireAuth, async (req, res) => {
       offeredSkill: offeredSkill || "",
       wantedSkill: wantedSkill || skill || "",
       message: message || "",
+      history: [{ status: "Pending", changedBy: req.user._id }],
     });
 
     await request.populate("from", "name email whatsapp");
@@ -316,7 +456,10 @@ app.post("/api/requests", requireDatabase, requireAuth, async (req, res) => {
       toId: request.to?._id,
       skill: request.skill,
       type: request.type,
+      offeredSkill: request.offeredSkill || "",
+      wantedSkill: request.wantedSkill || "",
       status: request.status,
+      history: request.history || [],
       isMine: true,
       date: "Just now",
     });
@@ -325,12 +468,11 @@ app.post("/api/requests", requireDatabase, requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/requests/:id — accept or decline a request (only the recipient can do this)
 app.patch("/api/requests/:id", requireDatabase, requireAuth, async (req, res) => {
   try {
-    const { status } = req.body;
-    if (!["Accepted", "Declined", "Cancelled"].includes(status)) {
-      return res.status(400).json({ message: "Status must be Accepted, Declined, or Cancelled" });
+    const { status, counterProposal } = req.body;
+    if (!["Pending", "Accepted", "Rejected", "Declined", "Cancelled"].includes(status)) {
+      return res.status(400).json({ message: "Status must be Accepted, Rejected, Declined, or Cancelled" });
     }
 
     const requestDoc = await Request.findById(req.params.id)
@@ -352,7 +494,17 @@ app.patch("/api/requests/:id", requireDatabase, requireAuth, async (req, res) =>
       return res.status(403).json({ message: "Only the recipient can respond to a pending request" });
     }
 
+    const previousStatus = requestDoc.status;
     requestDoc.status = status;
+    if (counterProposal && isRecipient && previousStatus === "Pending") {
+      requestDoc.counterProposal = {
+        day: String(counterProposal.day || ""),
+        start: String(counterProposal.start || ""),
+        end: String(counterProposal.end || ""),
+        note: String(counterProposal.note || "").slice(0, 500),
+      };
+    }
+    requestDoc.history.push({ status, note: counterProposal?.note || "", changedBy: req.user._id });
     await requestDoc.save();
 
     const userId = req.user._id;
@@ -368,7 +520,11 @@ app.patch("/api/requests/:id", requireDatabase, requireAuth, async (req, res) =>
       toId: requestDoc.to?._id,
       skill: requestDoc.skill,
       type: requestDoc.type,
+      offeredSkill: requestDoc.offeredSkill || "",
+      wantedSkill: requestDoc.wantedSkill || "",
       status: requestDoc.status,
+      counterProposal: requestDoc.counterProposal || null,
+      history: requestDoc.history || [],
       isMine: String(requestDoc.from?._id) === String(userId),
       date: requestDoc.createdAt.toLocaleDateString("en-US", {
         month: "short",
@@ -393,7 +549,12 @@ app.get("/api/connections", requireDatabase, requireAuth, async (req, res) => {
       const other = String(request.from._id) === String(req.user._id)
         ? request.to
         : request.from;
-      users.set(String(other._id), publicUser(other));
+      const userId = String(other._id);
+      const current = users.get(userId) || { ...publicUser(other), exchangeSkills: [] };
+      if (request.skill && !current.exchangeSkills.includes(request.skill)) {
+        current.exchangeSkills.push(request.skill);
+      }
+      users.set(userId, current);
     });
     res.json([...users.values()]);
   } catch (error) {
@@ -712,7 +873,6 @@ async function seedDatabase() {
     { upsert: true },
   );
 
-  // Seed user shown on the login page demo banner
   const navdeep = await User.findOneAndUpdate(
     { email: "navdeep9557@gmail.com" },
     {
@@ -770,7 +930,6 @@ async function seedDatabase() {
   }
 }
 
-// Serve frontend build in production / single-service deployment if dist exists
 const frontendDistPath = path.join(__dirname, "../frontend/dist");
 if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
@@ -820,12 +979,10 @@ async function start() {
       console.log("Connected to MongoDB");
       try {
         await seedDatabase();
-        console.log("Seeded demo database records");
       } catch (seedErr) {
         console.warn("Database seed warning:", seedErr.message);
       }
-      // Clean up legacy requests that were created without a `to` recipient field.
-      // These old records polluted every user's dashboard.
+
       try {
         const stale = await Request.deleteMany({
           $or: [{ to: { $exists: false } }, { to: null }],
