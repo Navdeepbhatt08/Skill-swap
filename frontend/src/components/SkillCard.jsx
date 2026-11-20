@@ -1,12 +1,25 @@
-import { BookOpen, Plus, Trash2, User } from "lucide-react";
+import { BookOpen, Plus, Trash2, User, Code, Palette, Megaphone, Briefcase, Sparkles, Zap } from "lucide-react";
 
 export default function SkillCard({ skill, onRequest, onDelete, onEdit }) {
   const ownerName = skill.owner?.name || null;
 
+  const getCategoryIcon = (category) => {
+    const icons = {
+      'Development': Code,
+      'Design': Palette,
+      'Communication': Megaphone,
+      'Business': Briefcase,
+      'Creative': Sparkles,
+      'Other': Zap,
+    };
+    const Icon = icons[category] || BookOpen;
+    return <Icon size={20} />;
+  };
+
   return (
     <article className={`skill-card ${skill.color}`}>
       <div className="skill-icon">
-        <BookOpen size={20} />
+        {getCategoryIcon(skill.category)}
       </div>
       <span className="skill-category">{skill.category}</span>
       <h4>{skill.name}</h4>

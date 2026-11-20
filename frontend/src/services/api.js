@@ -188,6 +188,58 @@ export function getAdminSummary() {
   return request("/api/admin/summary");
 }
 
+export function getAdminUsers() {
+  return request("/api/admin/users");
+}
+
+export function getAllUsers() {
+  return request("/api/users");
+}
+
+export function getAllSkills() {
+  return request("/api/skills");
+}
+
+export function adminAddUser(user) {
+  return request("/api/admin/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user),
+  });
+}
+
+export function adminUpdateUser(userId, updates) {
+  return request(`/api/admin/users/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+}
+
+export function adminDeleteUser(userId) {
+  return request(`/api/admin/users/${userId}`, { method: "DELETE" });
+}
+
+export function adminAddSkill(userId, skill) {
+  return request(`/api/admin/users/${userId}/skills`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(skill),
+  });
+}
+
+export function adminUpdateSkill(skillId, updates) {
+  return request(`/api/admin/skills/${skillId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+}
+
+export function adminDeleteSkill(skillId) {
+  return request(`/api/admin/skills/${skillId}`, { method: "DELETE" });
+}
+
 export function saveSession({ token, user }) {
   localStorage.setItem(tokenKey, token);
   localStorage.setItem("skillswap_user", JSON.stringify(user));

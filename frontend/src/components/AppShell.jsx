@@ -7,12 +7,18 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  Calendar,
+  Search,
+  Users,
+  Menu,
 } from "lucide-react";
+import { useState } from "react";
 
 const workspaceItems = [
   ["Overview", "Overview", LayoutDashboard],
-  ["Discover skills", "Discover", Compass],
+  ["Discover skills", "Discover", Search],
   ["Chat", "Chat", MessageCircle],
+  ["Schedule", "Schedule", Calendar],
   ["Requests", "Requests", BookOpen],
   ["My profile", "Profile", UserRound],
 ];
@@ -29,6 +35,12 @@ export default function AppShell({
   publicMode = false,
   children,
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuItems = [
+    ["Admin panel", "Admin", ShieldCheck],
+    ...workspaceItems,
+  ];
+
   return (
     <div className="app-shell min-h-screen">
       <main className="main-content mx-auto w-full">
@@ -42,34 +54,56 @@ export default function AppShell({
             </span>
             <small className="brand-tagline">Campus</small>
           </div>
-          <nav className="primary-nav flex items-center" aria-label="Workspace navigation">
-            {workspaceItems.map(([page, label, Icon]) => (
+          {isAdmin ? (
+            <div className="admin-menu">
               <button
-                key={page}
-                className={activePage === page ? "nav-item active" : "nav-item"}
-                onClick={() => onNavigate(page)}
+                type="button"
+                className="admin-menu-toggle"
+                aria-label="Open menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((open) => !open)}
               >
-                <Icon size={16} />
-                <span>{label}</span>
-                {page === "Requests" && requestCount > 0 && (
-                  <b className="nav-count">{requestCount}</b>
-                )}
-                {page === "Requests" && notificationCount > 0 && (
-                  <i className="nav-notification-dot" title="New messages or scheduled sessions" />
-                )}
+                <Menu size={22} />
               </button>
-            ))}
-          </nav>
-          
-          {isAdmin && (
-            <button
-              className={activePage === "Admin panel" ? "nav-item active admin-nav-item" : "nav-item admin-nav-item"}
-              onClick={() => onNavigate("Admin panel")}
-            >
-              <ShieldCheck size={16} />
-              <span>Admin</span>
-            </button>
+              {menuOpen && (
+                <nav className="admin-menu-panel" aria-label="Workspace navigation">
+                  {menuItems.map(([page, label, Icon]) => (
+                    <button
+                      key={page}
+                      className={activePage === page ? "nav-item active" : "nav-item"}
+                      onClick={() => {
+                        onNavigate(page);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <Icon size={16} />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </div>
+          ) : (
+            <nav className="primary-nav flex items-center" aria-label="Workspace navigation">
+              {workspaceItems.map(([page, label, Icon]) => (
+                <button
+                  key={page}
+                  className={activePage === page ? "nav-item active" : "nav-item"}
+                  onClick={() => onNavigate(page)}
+                >
+                  <Icon size={16} />
+                  <span>{label}</span>
+                  {page === "Requests" && requestCount > 0 && (
+                    <b className="nav-count">{requestCount}</b>
+                  )}
+                  {page === "Requests" && notificationCount > 0 && (
+                    <i className="nav-notification-dot" title="New messages or scheduled sessions" />
+                  )}
+                </button>
+              ))}
+            </nav>
           )}
+
           <div className="top-profile">
             <div className="avatar avatar-large">{currentUser.avatar}</div>
             <span>{currentUser.name}</span>

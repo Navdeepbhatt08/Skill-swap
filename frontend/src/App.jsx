@@ -120,6 +120,10 @@ export default function App() {
       notify("Log in to send a skill exchange request.");
       return;
     }
+    if (authUser.role === "admin") {
+      notify("Admins cannot request skill exchanges.");
+      return;
+    }
     if (!owner || !owner.id) {
       notify("This skill has no owner — request cannot be sent.");
       return;
@@ -301,7 +305,7 @@ export default function App() {
       />
     ),
     "Admin panel": <Admin user={authUser} />,
-  }[activePage];
+  }[activePage] || <Overview skills={skills} />;
 
   return (
     <AppShell
